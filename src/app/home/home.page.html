@@ -1,20 +1,20 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>
-      Blank
+      <div *ngIf="count == 0">L</div>
+      <div *ngIf="count > 0 && count < 10">hejjaaaa</div>
+      <div *ngIf="count > 20">jsi mistr</div>
+      <div *ngIf="count > 25">jsi velmistr</div>
+      <div *ngIf="count > 30">delej aj jozik je lepsi</div>
+      <div *ngIf="count > 35">jsi lepsi jak moon</div>
     </ion-title>
   </ion-toolbar>
 </ion-header>
-
+<!-- https://www.youtube.com/watch?v=qTdwUpQRptc -->
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+  <div id="container" (click)="isClicked()" [ngClass]="bgColor">
+    <div id="counter">{{ count }}</div>
   </div>
+
 </ion-content>
