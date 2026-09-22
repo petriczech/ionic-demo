@@ -1,9 +1,13 @@
+import { NgClass } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+
+import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular';
 
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
+  imports: [NgClass, IonContent, IonHeader, IonTitle, IonToolbar]
 })
 export class HomePage implements OnInit {
 

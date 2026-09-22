@@ -1,12 +1,24 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>
-      <div *ngIf="count == 0">L</div>
-      <div *ngIf="count > 0 && count < 10">hejjaaaa</div>
-      <div *ngIf="count > 20">jsi mistr</div>
-      <div *ngIf="count > 25">jsi velmistr</div>
-      <div *ngIf="count > 30">delej aj jozik je lepsi</div>
-      <div *ngIf="count > 35">jsi lepsi jak moon</div>
+      @if (count === 0) {
+        <div>L</div>
+      }
+      @if (count > 0 && count < 10) {
+        <div>hejjaaaa</div>
+      }
+      @if (count > 20) {
+        <div>jsi mistr</div>
+      }
+      @if (count > 25) {
+        <div>jsi velmistr</div>
+      }
+      @if (count > 30) {
+        <div>delej aj jozik je lepsi</div>
+      }
+      @if (count > 35) {
+        <div>jsi lepsi jak moon</div>
+      }
     </ion-title>
   </ion-toolbar>
 </ion-header>
