@@ -1,32 +1,244 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      @if (count === 0) {
-        <div>L</div>
-      }
-      @if (count > 0 && count < 10) {
-        <div>hejjaaaa</div>
-      }
-      @if (count > 20) {
-        <div>jsi mistr</div>
-      }
-      @if (count > 25) {
-        <div>jsi velmistr</div>
-      }
-      @if (count > 30) {
-        <div>delej aj jozik je lepsi</div>
-      }
-      @if (count > 35) {
-        <div>jsi lepsi jak moon</div>
-      }
-    </ion-title>
-  </ion-toolbar>
-</ion-header>
 <!-- https://www.youtube.com/watch?v=qTdwUpQRptc -->
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" [attr.data-heat]="store.heat()">
 
-  <div id="container" (click)="isClicked()" [ngClass]="bgColor">
-    <div id="counter">{{ count }}</div>
+  <div class="rig">
+
+    <header class="readout">
+      <span>tempo <b>{{ store.tempo() }}/s</b></span>
+      <span>úroveň <b>{{ store.level() + 1 }}</b> z {{ store.levelCount }}</span>
+      <span>rekord <b>{{ store.best() }}</b></span>
+    </header>
+
+    <p class="count" [attr.data-count]="store.count()" aria-hidden="true">{{ store.count() }}</p>
+    <!-- Rank and badges only. The raw count would change ten times a second;
+         these change a handful of times over a whole run. -->
+    <p class="sr" role="status">hodnost {{ store.rank() }}, odznaků {{ store.earnedCount() }} z {{ store.badges().length }}</p>
+
+    <div class="pad-wrap">
+      <svg class="arc" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="arc__track" cx="50" cy="50" r="46" />
+        <circle class="arc__fill" cx="50" cy="50" r="46" [style.stroke-dashoffset]="289 - 289 * tempoRatio()" />
+      </svg>
+
+      @for (ring of rings(); track ring) {
+        <span class="ring" aria-hidden="true" (animationend)="dropRing(ring)"></span>
+      }
+
+      <button type="button" class="pad" aria-label="Přidat klik" (click)="tap()"></button>
+
+      @for (landing of store.landings(); track landing.id) {
+        <div class="landing" (animationend)="store.clearLanding()">
+          <svg class="badge" viewBox="0 0 100 100" [style.color]="landing.color" aria-hidden="true">
+            <use [attr.href]="'#f-' + landing.shape" />
+            <use [attr.href]="'#e-' + landing.id" />
+          </svg>
+          <!-- Only secret badges get a label: a count badge's label is a rank label,
+               so the stamp underneath is already showing it. -->
+          @if (landing.secret) {
+            <span class="landing__label">{{ landing.label }}</span>
+          }
+        </div>
+      }
+    </div>
+
+    <p class="stamp">{{ store.rank() }}</p>
+
+    <button type="button" class="tray" (click)="boardOpen.set(true)">
+      @for (badge of store.badges(); track badge.id) {
+        @if (badge.earned) {
+          <svg class="badge" viewBox="0 0 100 100" [style.color]="badge.color" aria-hidden="true">
+            <use [attr.href]="'#f-' + badge.shape" />
+            <use [attr.href]="'#e-' + badge.id" />
+          </svg>
+        }
+      }
+      <span class="tray__score">{{ store.earnedCount() }}/{{ store.badges().length }}</span>
+    </button>
+
   </div>
 
 </ion-content>
+
+<ion-modal
+  [isOpen]="boardOpen()"
+  [breakpoints]="[0, 1]"
+  [initialBreakpoint]="1"
+  (ionModalDidDismiss)="boardOpen.set(false)">
+  <ng-template>
+    <ion-content class="board">
+
+      <h2 class="board__title">odznaky</h2>
+      <p class="board__score">máš {{ store.earnedCount() }} z {{ store.badges().length }}</p>
+
+      <h3 class="board__group">za počet kliků</h3>
+      <ul class="board__list">
+        @for (badge of store.classicBadges(); track badge.id) {
+          <li class="board__item" [class.board__item--locked]="!badge.earned">
+            <svg class="badge" viewBox="0 0 100 100" [style.color]="badge.earned ? badge.color : ''" aria-hidden="true">
+              <use [attr.href]="'#f-' + badge.shape" />
+              <use [attr.href]="'#e-' + badge.id" />
+            </svg>
+            <span class="board__text">
+              <b>{{ badge.label }}</b>
+              <small>od {{ badge.at }} kliků</small>
+            </span>
+          </li>
+        }
+      </ul>
+
+      <h3 class="board__group">tajné</h3>
+      <ul class="board__list">
+        @for (badge of store.secretBadges(); track badge.id) {
+          <li class="board__item" [class.board__item--locked]="!badge.earned">
+            <svg class="badge" viewBox="0 0 100 100" [style.color]="badge.earned ? badge.color : ''" aria-hidden="true">
+              <use [attr.href]="'#f-' + badge.shape" />
+              <use [attr.href]="badge.earned ? '#e-' + badge.id : '#e-zamek'" />
+            </svg>
+            <span class="board__text">
+              <b>{{ badge.earned ? badge.label : '???' }}</b>
+              <small>{{ badge.earned ? 'za ' + badge.at + ' kliků za sekundu' : 'zjisti sám, za co je' }}</small>
+            </span>
+          </li>
+        }
+      </ul>
+
+      <p class="board__best">nejrychlejší tempo: {{ store.bestTempo() }} kliků za sekundu</p>
+
+      <button type="button" class="board__reset" (click)="store.reset()">vynulovat počítadlo</button>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Badge artwork. Each badge is a pastel frame (picked by shape) with its own
+     little cartoon stamped over it in ink (picked by id). Drawn once here and
+     referenced everywhere, so the tray, the board and the fly-in share one copy.
+     Inside a symbol: fill inherits the ink, "currentColor" is the badge colour. -->
+<svg class="sprite" aria-hidden="true">
+
+  <symbol id="f-circle" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="currentColor" stroke-width="6" /></symbol>
+  <symbol id="f-shield" viewBox="0 0 100 100"><path fill="currentColor" stroke-width="6" d="M6 6H94V58L50 95 6 58Z" /></symbol>
+  <symbol id="f-hex" viewBox="0 0 100 100"><path fill="currentColor" stroke-width="6" d="M50 4 91 27V73L50 96 9 73V27Z" /></symbol>
+  <symbol id="f-rosette" viewBox="0 0 100 100"><path fill="currentColor" stroke-width="6" d="M50 4 59.8 13.6 73 10.2 76.7 23.3 89.8 27 86.4 40.3 96 50 86.4 59.8 89.8 73 76.7 76.7 73 89.8 59.8 86.4 50 96 40.3 86.4 27 89.8 23.3 76.7 10.2 73 13.6 59.8 4 50 13.6 40.3 10.2 27 23.3 23.3 27 10.2 40.3 13.6Z" /></symbol>
+
+  <!-- rozjíždíš se - wide-eyed, and already moving -->
+  <symbol id="e-rozjezd" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <circle cx="50" cy="52" r="20" fill="currentColor" />
+    <ellipse cx="43" cy="49" rx="4" ry="5.5" />
+    <ellipse cx="57" cy="49" rx="4" ry="5.5" />
+    <circle cx="41.5" cy="46.5" r="1.6" fill="currentColor" />
+    <circle cx="55.5" cy="46.5" r="1.6" fill="currentColor" />
+    <path fill="none" stroke-width="4" d="M44 61q6 6 12 0" />
+    <path fill="none" stroke-width="4" d="M24 44h6M22 54h8M76 44h-6M78 54h-8" />
+    </g>
+  </symbol>
+
+  <!-- koníček - the word says horse, so here is one -->
+  <symbol id="e-konicek" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <path fill="currentColor" d="M39 40 36 22 50 33Z" />
+    <path fill="currentColor" d="M61 40 64 22 50 33Z" />
+    <ellipse cx="50" cy="51" rx="16" ry="17" fill="currentColor" />
+    <ellipse cx="50" cy="66" rx="10" ry="8" fill="currentColor" />
+    <circle cx="43" cy="48" r="3.2" />
+    <circle cx="57" cy="48" r="3.2" />
+    <circle cx="46" cy="65" r="1.8" />
+    <circle cx="54" cy="65" r="1.8" />
+    </g>
+  </symbol>
+
+  <!-- normální člověk by skončil - the flat stare, with the sweat drop -->
+  <symbol id="e-normalni" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <circle cx="47" cy="52" r="20" fill="currentColor" />
+    <path fill="none" stroke-width="4" d="M38 48h7M50 48h7" />
+    <path fill="none" stroke-width="4" d="M40 61q3.5-4 7 0t7 0" />
+    <path fill="currentColor" d="M73 36c4 7 6 9 6 12a6 6 0 0 1-12 0c0-3 2-5 6-12Z" />
+    </g>
+  </symbol>
+
+  <!-- displej má otisk -->
+  <symbol id="e-otisk" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <path fill="none" stroke-width="5" d="M32 62a19 22 0 0 1 38 0M39 66a12 15 0 0 1 24 0M46 70a5 8 0 0 1 10 0" />
+    <path stroke-width="2" d="M69 26 71.5 33 78 35.5 71.5 38 69 45 66.5 38 60 35.5 66.5 33Z" />
+    </g>
+  </symbol>
+
+  <!-- venku je hezky, jen tak mimochodem -->
+  <symbol id="e-venku" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <path fill="none" stroke-width="4.5" d="M50 27v-6M50 73v6M27 50h-6M73 50h6M34 34l-4-4M66 66l4 4M66 34l4-4M34 66l-4 4" />
+    <circle cx="50" cy="50" r="16" fill="currentColor" />
+    <circle cx="44" cy="47" r="2.8" />
+    <circle cx="56" cy="47" r="2.8" />
+    <path fill="none" stroke-width="4" d="M44 56q6 6 12 0" />
+    <ellipse cx="38" cy="54" rx="3" ry="2" opacity="0.4" />
+    <ellipse cx="62" cy="54" rx="3" ry="2" opacity="0.4" />
+    </g>
+  </symbol>
+
+  <!-- mozek se vypnul, ruka jede - spiral eyes, the usual sign of it -->
+  <symbol id="e-mozek" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <circle cx="50" cy="52" r="21" fill="currentColor" />
+    <path fill="none" stroke-width="3.5" d="M38 49a5 5 0 1 1 5 5 2.5 2.5 0 1 0-2.5-2.5" />
+    <path fill="none" stroke-width="3.5" d="M52 49a5 5 0 1 1 5 5 2.5 2.5 0 1 0-2.5-2.5" />
+    <ellipse cx="50" cy="64" rx="4.5" ry="3.5" />
+    </g>
+  </symbol>
+
+  <!-- prst podal výpověď - one plaster and the little marks that mean ouch -->
+  <symbol id="e-vypoved" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <path fill="currentColor" d="M42 74V44c0-5 3.5-9 8-9s8 4 8 9v30Z" />
+    <path fill="none" stroke-width="3.5" d="M45.5 47a4.5 4.5 0 0 1 9 0" />
+    <path fill="none" stroke-width="4.5" d="M41 60h18M50 53v14" />
+    <path fill="none" stroke-width="4" d="M31 35l-5-5M28 46l-6-2M69 35l5-5M72 46l6-2" />
+    </g>
+  </symbol>
+
+  <!-- už si ani nepamatuješ proč -->
+  <symbol id="e-proc" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <path fill="none" stroke-width="7" d="M38 42a12 12 0 1 1 12 13v5" />
+    <circle cx="50" cy="70" r="4" />
+    <path fill="none" stroke-width="4" d="M27 38l-4-4M73 38l4-4M26 52h-5M74 52h5" />
+    </g>
+  </symbol>
+
+  <!-- legenda. nebo diagnóza. -->
+  <symbol id="e-legenda" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <path fill="currentColor" d="M31 67V39l10 9 9-15 9 15 10-9v28Z" />
+    <circle cx="50" cy="58" r="3.2" />
+    <path stroke-width="2" d="M26 20 27.8 25.2 33 27 27.8 28.8 26 34 24.2 28.8 19 27 24.2 25.2Z" />
+    <path stroke-width="2" d="M74 20 75.8 25.2 81 27 75.8 28.8 74 34 72.2 28.8 67 27 72.2 25.2Z" />
+    </g>
+  </symbol>
+
+  <!-- autoklikr - nobody taps that fast, so something else is doing it -->
+  <symbol id="e-autoklikr" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <path fill="none" stroke-width="5" d="M50 41V30" />
+    <circle cx="50" cy="26" r="4" />
+    <rect x="26" y="50" width="7" height="11" rx="3" fill="currentColor" />
+    <rect x="67" y="50" width="7" height="11" rx="3" fill="currentColor" />
+    <rect x="32" y="41" width="36" height="32" rx="10" fill="currentColor" />
+    <circle cx="42" cy="55" r="3.4" />
+    <circle cx="58" cy="55" r="3.4" />
+    <path fill="none" stroke-width="4" d="M43 65h14" />
+    </g>
+  </symbol>
+
+  <!-- Stands in for a secret badge nobody has earned yet -->
+  <symbol id="e-zamek" viewBox="0 0 100 100">
+    <g transform="translate(10 10) scale(0.8)">
+    <path fill="none" stroke-width="6" d="M39 50v-8a11 11 0 0 1 22 0v8" />
+    <rect x="32" y="50" width="36" height="26" rx="6" fill="currentColor" />
+    <circle cx="50" cy="63" r="3.5" />
+    </g>
+  </symbol>
+
+</svg>

@@ -227,3 +227,23 @@
     --color: white;
   }
 }
+
+/** Silomer - risograph ink and the seven-step heat ramp.
+ *  The ramp keeps the thresholds the original background colours used,
+ *  only in pastel. **/
+:root {
+  --ink: #33304a;
+  --pop: #f0576e;
+  --paper: #fffaf1;
+
+  /* Ionic sets this on its own components, so the body rule alone is not enough. */
+  --ion-font-family: 'Manrope', system-ui, 'Segoe UI', sans-serif;
+
+  --heat-1: #b9e4d0;
+  --heat-2: #c9e6a8;
+  --heat-3: #a9d4f2;
+  --heat-4: #c9bcf0;
+  --heat-5: #f7e5a8;
+  --heat-6: #f9cca4;
+  --heat-7: #f6abb6;
+}

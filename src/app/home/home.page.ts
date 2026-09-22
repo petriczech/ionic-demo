@@ -1,48 +1,37 @@
-import { NgClass } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 
-import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular';
+import { IonContent, IonModal } from '@ionic/angular';
+
+import { ClickerStore } from './clicker.store';
+
+/* The tempo arc is full at this rate, a little above the fastest achievement. */
+const tempoCeiling = 12;
 
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
-  imports: [NgClass, IonContent, IonHeader, IonTitle, IonToolbar]
+  imports: [IonContent, IonModal]
 })
-export class HomePage implements OnInit {
+export class HomePage {
 
-  public count = 0;
+  protected readonly store = inject(ClickerStore);
 
-  constructor() {}
+  protected readonly boardOpen = signal(false);
+  protected readonly rings = signal<readonly number[]>([]);
 
-  ngOnInit() {
+  protected readonly tempoRatio = computed(() => Math.min(1, this.store.tempo() / tempoCeiling));
 
+  private nextRing = 0;
+
+  protected tap(): void {
+    this.store.hit();
+    this.rings.update((rings) => [...rings, this.nextRing++].slice(-12));
   }
 
-  private get getCount() {
-    return this.count;
-  }
-
-  public get bgColor() {
-    const count = this.getCount;
-    if (count <= 10) {
-      return 'bg1';
-    } else if (count > 10 && count <= 20) {
-      return 'bg2';
-    } else if (count > 20 && count <= 30) {
-      return 'bg3';
-    } else if (count > 30 && count <= 40) {
-      return 'bg4';
-    } else if (count > 40 && count <= 50) {
-      return 'bg5';
-    } else if (count > 50 && count <= 60) {
-      return 'bg6';
-    } else {
-      return 'bg7';
-    }
-  }
-
-  public isClicked() {
-    this.count++;
+  /* Driven by the animation rather than a timer, so nothing is left pending
+   * when the page goes away and the two can never drift apart. */
+  protected dropRing(id: number): void {
+    this.rings.update((rings) => rings.filter((ring) => ring !== id));
   }
 }

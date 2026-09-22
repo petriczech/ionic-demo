@@ -1,55 +1,365 @@
-#container {
-  text-align: center;
+ion-content {
+  --background: var(--heat-1);
+  --color: var(--ink);
 
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  &[data-heat='2'] { --background: var(--heat-2); }
+  &[data-heat='3'] { --background: var(--heat-3); }
+  &[data-heat='4'] { --background: var(--heat-4); }
+  &[data-heat='5'] { --background: var(--heat-5); }
+  &[data-heat='6'] { --background: var(--heat-6); }
+  &[data-heat='7'] { --background: var(--heat-7); }
+}
 
-  border: 5px solid black;
-  background-color: #3498db;
-  border-radius: 100%;
-  width: 200px;
-  height: 200px;
+.rig {
+  position: relative;
   display: flex;
-  font-size: 2em;
+  min-height: 100%;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-
+  gap: clamp(0.6rem, 2.5vh, 1.6rem);
+  padding: calc(1rem + var(--ion-safe-area-top, 0px)) 1.25rem calc(1.25rem + var(--ion-safe-area-bottom, 0px));
+  color: var(--ink);
 }
 
-#info-text {
-  font-size: 2em;
-  line-height: 2em;
+/* Paper grain, so the flat inks do not read as plain CSS fills. */
+.rig::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: radial-gradient(rgba(51, 48, 74, 0.13) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+}
+
+.readout {
+  display: flex;
+  width: 100%;
+  /* Together with the tray's auto margin this centres the score, pad and stamp. */
+  margin-bottom: auto;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  opacity: 0.72;
+
+  b {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ---- score ---------------------------------------------------------- */
+
+.count {
+  position: relative;
+  margin: clamp(0.25rem, 2vh, 1rem) 0 0;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: clamp(4.5rem, 24vw, 9rem);
+  line-height: 0.88;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Second ink plate, deliberately off register. */
+.count::after {
+  content: attr(data-count);
+  position: absolute;
+  inset: 0;
+  color: var(--pop);
+  mix-blend-mode: multiply;
+  transform: translate(4px, -4px);
+}
+
+.stamp {
+  margin: 0;
+  padding: 0.35rem 1rem 0.25rem;
+  border: 3px solid var(--ink);
+  border-radius: 3px;
+  background: var(--paper);
+  box-shadow: 4px 4px 0 var(--pop);
+  transform: rotate(-2.5deg);
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: clamp(1.05rem, 5.5vw, 1.7rem);
   text-align: center;
 }
 
-#container p {
-  font-size: 16px;
-  line-height: 22px;
+/* ---- pad ------------------------------------------------------------ */
 
-  color: #8c8c8c;
-
-  margin: 0;
+.pad-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(10.5rem, 56vw, 15rem);
+  aspect-ratio: 1;
 }
 
-#container a {
-  text-decoration: none;
+.arc {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
 }
 
-ion-content ion-toolbar {
-  --background: translucent;
+.arc__track,
+.arc__fill {
+  fill: none;
+  stroke-width: 3;
 }
 
-#container {
-  &.bg1 {background-color: #1abc9c;}
-  &.bg2 {background-color: #2ecc71;}
-  &.bg3 {background-color: #3498db;}
-  &.bg4 {background-color: #9b59b6;}
-  &.bg5 {background-color: #f1c40f;}
-  &.bg6 {background-color: #e67e22;}
-  &.bg7 {background-color: #e74c3c;}
+.arc__track {
+  stroke: var(--ink);
+  stroke-opacity: 0.15;
+}
+
+.arc__fill {
+  stroke: var(--pop);
+  stroke-linecap: round;
+  stroke-dasharray: 289;
+  transition: stroke-dashoffset 120ms linear;
+}
+
+.pad {
+  width: 76%;
+  aspect-ratio: 1;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 9px 0 var(--ink), inset 0 0 0 9px rgba(51, 48, 74, 0.09);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 70ms ease, box-shadow 70ms ease;
+}
+
+.pad:active {
+  transform: translateY(9px);
+  box-shadow: 0 0 0 var(--ink), inset 0 0 0 9px rgba(51, 48, 74, 0.09);
+}
+
+.pad:focus-visible {
+  outline: 3px solid var(--pop);
+  outline-offset: 7px;
+}
+
+.ring {
+  position: absolute;
+  width: 76%;
+  aspect-ratio: 1;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: shock 650ms ease-out forwards;
+}
+
+@keyframes shock {
+  from { transform: scale(1); opacity: 0.5; }
+  to { transform: scale(1.75); opacity: 0; }
+}
+
+/* ---- badges --------------------------------------------------------- */
+
+.badge {
+  display: block;
+  width: 1.7rem;
+  height: 1.7rem;
+  flex: none;
+  /* Inherited by the symbol artwork: ink is the default paint, `color` is the
+   * pastel the frame fills with. The hard offset shadow keeps the sticker look. */
+  color: rgba(51, 48, 74, 0.16);
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(2px 2px 0 var(--ink));
+}
+
+/* Holds the <symbol> artwork. Never painted, only referenced. */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.tray {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding: 0.45rem 0.8rem;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tray__score {
+  font-weight: 800;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tray:focus-visible {
+  outline: 3px solid var(--pop);
+  outline-offset: 4px;
+}
+
+/* ---- unlock --------------------------------------------------------- */
+
+/* Struck onto the pad itself - the only area big enough for it, and the one
+ * the eye is already on. Measured: the band under the stamp is 81px, the
+ * badge is 88px, so it never fitted there. */
+.landing {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  pointer-events: none;
+  animation: land 1700ms ease-out forwards;
+
+  .badge {
+    width: 5.5rem;
+    height: 5.5rem;
+    filter: drop-shadow(5px 5px 0 var(--ink));
+  }
+}
+
+.landing__label {
+  padding: 0.25rem 0.85rem 0.15rem;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 1.25rem;
+}
+
+@keyframes land {
+  0% { opacity: 0; transform: scale(0.35) rotate(-18deg); }
+  22% { opacity: 1; transform: scale(1.12) rotate(4deg); }
+  34% { transform: scale(1) rotate(0deg); }
+  80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.92); }
+}
+
+/* ---- board ---------------------------------------------------------- */
+
+.board {
+  --background: var(--paper);
+  --color: var(--ink);
+}
+
+.board__title {
+  margin: 1.5rem 1.25rem 0;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 1.9rem;
+  font-weight: 400;
+}
+
+.board__score,
+.board__best {
+  margin: 0.15rem 1.25rem 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.board__group {
+  margin: 1.4rem 1.25rem 0.2rem;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  opacity: 0.55;
+}
+
+.board__list {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board__item {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.6rem 1.25rem;
+}
+
+.board__item + .board__item {
+  border-top: 1px solid rgba(51, 48, 74, 0.1);
+}
+
+.board__item--locked {
+  /* Greyed and flattened - the drawing stays readable, just clearly not yours yet. */
+  .badge {
+    opacity: 0.4;
+    filter: none;
+  }
+
+  .board__text {
+    opacity: 0.45;
+  }
+}
+
+.board__text {
+  display: flex;
+  flex-direction: column;
+
+  b {
+    font-weight: 800;
+  }
+
+  small {
+    font-size: 0.75rem;
+    opacity: 0.65;
+  }
+}
+
+.board__best {
+  margin-top: 1.1rem;
+}
+
+.board__reset {
+  margin: 0.9rem 1.25rem calc(2rem + var(--ion-safe-area-bottom, 0px));
+  padding: 0.55rem 1.1rem;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The unlock still has to be readable without motion, so it only fades. */
+@keyframes land-still {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation-duration: 1ms;
+  }
+
+  .landing {
+    animation-name: land-still;
+  }
+
+  .pad,
+  .arc__fill {
+    transition-duration: 1ms;
+  }
 }
