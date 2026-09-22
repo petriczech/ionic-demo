@@ -1,32 +1,54 @@
+/*
+ * Capacitor plugins are Proxy objects (registerPlugin), so they cannot be
+ * intercepted with vi.spyOn - the whole module is mocked instead.
+ */
+const nativeMocks = vi.hoisted(() => ({
+  setStyle: vi.fn().mockResolvedValue(undefined),
+  hide: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock('@capacitor/core', () => ({
+  Capacitor: { isNativePlatform: () => true }
+}));
+
+vi.mock('@capacitor/status-bar', () => ({
+  StatusBar: { setStyle: nativeMocks.setStyle },
+  Style: { Default: 'DEFAULT' }
+}));
+
+vi.mock('@capacitor/splash-screen', () => ({
+  SplashScreen: { hide: nativeMocks.hide }
+}));
+
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { TestBed, async } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 
 import { Platform } from '@ionic/angular';
-import { SplashScreen } from '@ionic-native/splash-screen/ngx';
-import { StatusBar } from '@ionic-native/status-bar/ngx';
 
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
 
-  let statusBarSpy, splashScreenSpy, platformReadySpy, platformSpy;
+  let platformReadySpy: Promise<void>;
+  let platformSpy: { ready: () => Promise<void> };
 
-  beforeEach(async(() => {
-    statusBarSpy = jasmine.createSpyObj('StatusBar', ['styleDefault']);
-    splashScreenSpy = jasmine.createSpyObj('SplashScreen', ['hide']);
+  beforeEach(async () => {
+    nativeMocks.setStyle.mockClear();
+    nativeMocks.hide.mockClear();
     platformReadySpy = Promise.resolve();
-    platformSpy = jasmine.createSpyObj('Platform', { ready: platformReadySpy });
+    platformSpy = { ready: vi.fn().mockReturnValue(platformReadySpy) };
 
-    TestBed.configureTestingModule({
-      declarations: [AppComponent],
-      schemas: [CUSTOM_ELEMENTS_SCHEMA],
+    await TestBed.configureTestingModule({
+      imports: [AppComponent],
       providers: [
-        { provide: StatusBar, useValue: statusBarSpy },
-        { provide: SplashScreen, useValue: splashScreenSpy },
-        { provide: Platform, useValue: platformSpy },
-      ],
-    }).compileComponents();
-  }));
+        { provide: Platform, useValue: platformSpy }
+      ]
+    })
+      .overrideComponent(AppComponent, {
+        set: { imports: [], schemas: [CUSTOM_ELEMENTS_SCHEMA] }
+      })
+      .compileComponents();
+  });
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(AppComponent);
@@ -38,8 +60,9 @@ describe('AppComponent', () => {
     TestBed.createComponent(AppComponent);
     expect(platformSpy.ready).toHaveBeenCalled();
     await platformReadySpy;
-    expect(statusBarSpy.styleDefault).toHaveBeenCalled();
-    expect(splashScreenSpy.hide).toHaveBeenCalled();
+    await Promise.resolve();
+    expect(nativeMocks.setStyle).toHaveBeenCalledWith({ style: 'DEFAULT' });
+    expect(nativeMocks.hide).toHaveBeenCalled();
   });
 
   // TODO: add more tests!
